@@ -1,0 +1,64 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: emqx
+  labels:
+    app: emqx
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: emqx
+    spec:
+      serviceAccountName: pushservice
+      securityContext:
+        privileged: true
+        runAsUser: 0
+      containers:
+      - name: emqx
+        image: emqx/emqx-ee:v3.2.2
+        ports:
+        - name: emqx-dashboard
+          containerPort: 18083
+        - name: emqx-ws-8083
+          containerPort: 8083
+        - name: emqx-tcp-1883
+          containerPort: 1883
+        requests:
+          cpu: 2
+          memory: 4Gi
+        limits:
+          cpu: 2
+          memory: 4Gi
+        env:
+        - name: EMQX_CLUSTER__DISCOVERY
+          value: k8s
+        - name: EMQX_NAME
+          value: emqx
+        - name: EMQX_CLUSTER__K8S__APISERVER
+          value: https://kubernetes.default.svc:443
+        - name: EMQX_CLUSTER__K8S__NAMESPACE
+          value: myproject
+        - name: EMQX_CLUSTER__K8S__SERVICE_NAME
+          value: emqx
+        - name: EMQX_CLUSTER__K8S__ADDRESS_TYPE
+          value: ip
+        - name: EMQX_CLUSTER__K8S__APP_NAME
+          value: emqx
+        - name: EMQX_CLUSTER__K8S__APP_NAME
+          value: emqx
+        - name: EMQX_LISTENER__WS__EXTERNAL__ACCEPTORS
+          value: "1000"
+        tty: true
+        volumeMounts:
+        - mountPath: /opt/emqx/etc/emqx.lic
+          name: config-volume
+          subPath: emqx.lic
+      volumes:
+      - configMap:
+          items:
+          - key: emqx.lic
+            path: emqx.lic
+          name: emq-config
+        name: config-volume
